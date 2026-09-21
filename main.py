@@ -168,11 +168,72 @@ st.text_input(
 st.divider()
 
 # ==============================================================
+# [구역 3] 날짜별 10위권 일관객 합계
+# ==============================================================
+st.header("3️⃣ 날짜별 10위권 일관객 합계")
+
+# 날짜별로 그날 10위권에 든 영화들의 일관객을 모두 더합니다.
+daily_sum = df.groupby("날짜", as_index=False)["일관객"].sum()
+daily_sum = daily_sum.rename(columns={"일관객": "일관객합계"})
+daily_sum = daily_sum.sort_values("날짜")
+
+if daily_sum.empty:
+    st.warning("표시할 데이터가 없습니다.")
+else:
+    fig3 = px.area(
+        daily_sum,
+        x="날짜",
+        y="일관객합계",
+        title="날짜별 10위권 일관객 합계",
+        labels={"날짜": "날짜", "일관객합계": "10위권 일관객 합계(명)"},
+    )
+    fig3.update_traces(
+        hovertemplate="날짜: %{x|%Y-%m-%d}<br>합계: %{y:,}명<extra></extra>"
+    )
+
+    # 합계가 가장 컸던 날 3일을 찾습니다.
+    top3_days = daily_sum.sort_values("일관객합계", ascending=False).head(3)
+
+    # 상위 3일을 그래프 위에 빨간 점으로 표시합니다.
+    fig3.add_scatter(
+        x=top3_days["날짜"],
+        y=top3_days["일관객합계"],
+        mode="markers",
+        marker=dict(size=12, color="red", symbol="circle"),
+        name="합계 상위 3일",
+        hovertemplate="날짜: %{x|%Y-%m-%d}<br>합계: %{y:,}명<extra>합계 상위 3일</extra>",
+    )
+
+    # 각 점 위에 날짜를 글자로 적어줍니다.
+    for _, row in top3_days.iterrows():
+        fig3.add_annotation(
+            x=row["날짜"],
+            y=row["일관객합계"],
+            text=row["날짜"].strftime("%Y-%m-%d"),
+            showarrow=True,
+            arrowhead=2,
+            ax=0,
+            ay=-40,
+            font=dict(color="red", size=12),
+        )
+
+    st.plotly_chart(fig3, use_container_width=True)
+
+st.text_input(
+    "💡 이 그래프로 알 수 있는 것",
+    value="",
+    placeholder="예: 특정 명절이나 신작 개봉 시기에 전체 관객수가 크게 튀어 오른다.",
+    key="section3_insight",
+)
+
+st.divider()
+
+# ==============================================================
 # ▶▶▶ 여기부터 새 구역을 추가하세요 ◀◀◀
 # 다음 그래프를 만들 때는 아래 형식을 그대로 복사해서 쓰면 됩니다.
 #
-# st.header("3️⃣ (새 그래프 제목)")
+# st.header("4️⃣ (새 그래프 제목)")
 # ... 그래프를 그리는 코드 ...
-# st.text_input("💡 이 그래프로 알 수 있는 것", value="", placeholder="...", key="section3_insight")
+# st.text_input("💡 이 그래프로 알 수 있는 것", value="", placeholder="...", key="section4_insight")
 # st.divider()
 # ==============================================================
