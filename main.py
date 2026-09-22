@@ -229,11 +229,109 @@ st.text_input(
 st.divider()
 
 # ==============================================================
+# [구역 4] 관객수 합계 TOP 10 영화
+# ==============================================================
+st.header("4️⃣ 관객수 합계 TOP 10 영화")
+
+# 영화별로 이 기간 일관객 합계와, 10위권에 든 날수(=이 데이터에 등장한 날짜 수)를 구합니다.
+agg_df = df.groupby("영화명").agg(
+    합계관객=("일관객", "sum"),
+    진입일수=("날짜", "nunique"),
+).reset_index()
+
+top10_df = agg_df.sort_values("합계관객", ascending=False).head(10)
+
+if top10_df.empty:
+    st.warning("표시할 데이터가 없습니다.")
+else:
+    fig4 = px.bar(
+        top10_df,
+        x="합계관객",
+        y="영화명",
+        orientation="h",  # 가로 막대그래프
+        title="일관객 합계 TOP 10 영화",
+        labels={"합계관객": "합계 관객수(명)", "영화명": "영화명"},
+        custom_data=["진입일수"],  # 호버에 쓸 값을 따로 담아둡니다.
+    )
+    # 관객이 많은 영화가 위쪽에 오도록 정렬합니다.
+    fig4.update_yaxes(categoryorder="total ascending")
+
+    fig4.update_traces(
+        hovertemplate=(
+            "영화: %{y}<br>"
+            "합계 관객수: %{x:,}명<br>"
+            "10위권 진입일수: %{customdata[0]}일"
+            "<extra></extra>"
+        )
+    )
+
+    st.plotly_chart(fig4, use_container_width=True)
+
+st.text_input(
+    "💡 이 그래프로 알 수 있는 것",
+    value="",
+    placeholder="예: 상위권 영화들 중에는 합계 관객수는 비슷해도 10위권에 머문 기간은 크게 차이 난다.",
+    key="section4_insight",
+)
+
+st.divider()
+
+# ==============================================================
+# [구역 5] 월 × 요일별 일관객 합계 히트맵
+# ==============================================================
+st.header("5️⃣ 월 × 요일별 일관객 합계 히트맵")
+
+# 날짜에서 '월'과 '요일'을 각각 뽑아냅니다.
+heat_df = df.copy()
+heat_df["월"] = heat_df["날짜"].dt.month
+
+# dt.weekday는 월요일=0, 화요일=1, ... 일요일=6 으로 주는 숫자값입니다.
+# 이를 월요일부터 일요일 순서의 한글 요일 이름으로 바꿔줍니다.
+weekday_order = ["월", "화", "수", "목", "금", "토", "일"]
+weekday_names = {0: "월", 1: "화", 2: "수", 3: "목", 4: "금", 5: "토", 6: "일"}
+heat_df["요일"] = heat_df["날짜"].dt.weekday.map(weekday_names)
+
+# 월(가로) × 요일(세로) 표로 일관객 합계를 계산합니다.
+pivot = heat_df.pivot_table(
+    index="요일", columns="월", values="일관객", aggfunc="sum", fill_value=0
+)
+
+# 세로축은 '월~일' 순서로, 가로축은 '1월~12월' 순서로 정리합니다.
+pivot = pivot.reindex(weekday_order)
+pivot = pivot.reindex(columns=sorted(pivot.columns))
+pivot.columns = [f"{m}월" for m in pivot.columns]
+
+if pivot.empty:
+    st.warning("표시할 데이터가 없습니다.")
+else:
+    fig5 = px.imshow(
+        pivot,
+        labels=dict(x="월", y="요일", color="합계 관객수(명)"),
+        color_continuous_scale="Reds",  # 색이 진할수록 관객이 많다는 뜻입니다.
+        aspect="auto",
+        title="월 × 요일별 일관객 합계",
+    )
+    fig5.update_traces(
+        hovertemplate="%{y}요일 · %{x}<br>합계 관객수: %{z:,}명<extra></extra>"
+    )
+
+    st.plotly_chart(fig5, use_container_width=True)
+
+st.text_input(
+    "💡 이 그래프로 알 수 있는 것",
+    value="",
+    placeholder="예: 주말(토·일)이 평일보다 색이 진해, 주말에 관객이 더 몰리는 것을 알 수 있다.",
+    key="section5_insight",
+)
+
+st.divider()
+
+# ==============================================================
 # ▶▶▶ 여기부터 새 구역을 추가하세요 ◀◀◀
 # 다음 그래프를 만들 때는 아래 형식을 그대로 복사해서 쓰면 됩니다.
 #
-# st.header("4️⃣ (새 그래프 제목)")
+# st.header("6️⃣ (새 그래프 제목)")
 # ... 그래프를 그리는 코드 ...
-# st.text_input("💡 이 그래프로 알 수 있는 것", value="", placeholder="...", key="section4_insight")
+# st.text_input("💡 이 그래프로 알 수 있는 것", value="", placeholder="...", key="section6_insight")
 # st.divider()
 # ==============================================================
